@@ -1,35 +1,9 @@
 #!/bin/bash
 # This script is responsible for deploying the contracts for zkEVM/CDK.
-
+set -e
 echo_ts() {
     timestamp=$(date +"[%Y-%m-%d %H:%M:%S]")
     echo "$timestamp $1"
-}
-
-wait_for_rpc_to_be_available() {
-    rpc_url="$1"
-    counter=0
-    max_retries=20
-    until cast send --rpc-url "{{.l1_rpc_url}}" --mnemonic "{{.l1_preallocated_mnemonic}}" --value 0 "{{.zkevm_l2_sequencer_address}}"; do
-        ((counter++))
-        echo_ts "L1 RPC might not be ready... Retrying ($counter)..."
-        if [ $counter -ge $max_retries ]; then
-            echo_ts "Exceeded maximum retry attempts. Exiting."
-            exit 1
-        fi
-        sleep 5
-    done
-}
-
-fund_account_on_l1() {
-    name="$1"
-    address="$2"
-    echo_ts "Funding $name account"
-    cast send \
-        --rpc-url "{{.l1_rpc_url}}" \
-        --mnemonic "{{.l1_preallocated_mnemonic}}" \
-        --value "{{.l1_funding_amount}}" \
-        "$address"
 }
 
 # We want to avoid running this script twice.
@@ -38,19 +12,6 @@ if [[ -e "/opt/zkevm/.init-complete.lock" ]]; then
     echo "This script has already been executed"
     exit
 fi
-
-# Wait for the L1 RPC to be available.
-echo_ts "Waiting for the L1 RPC to be available"
-wait_for_rpc_to_be_available "{{.l1_rpc_url}}"
-echo_ts "L1 RPC is now available"
-
-# Fund accounts on L1.
-echo_ts "Funding important accounts on l1"
-fund_account_on_l1 "admin" "{{.zkevm_l2_admin_address}}"
-fund_account_on_l1 "sequencer" "{{.zkevm_l2_sequencer_address}}"
-fund_account_on_l1 "aggregator" "{{.zkevm_l2_aggregator_address}}"
-fund_account_on_l1 "agglayer" "{{.zkevm_l2_agglayer_address}}"
-fund_account_on_l1 "claimtxmanager" "{{.zkevm_l2_claimtxmanager_address}}"
 
 # Configure zkevm contract deploy parameters.
 pushd /opt/zkevm-contracts || exit 1
@@ -151,7 +112,6 @@ cast send \
     'approve(address,uint256)(bool)' \
     "$(jq -r '.rollupAddress' combined.json)" 1000000000000000000000000000
 
-{{if .is_cdk_validium}}
 # The DAC needs to be configured with a required number of signatures.
 # Right now the number of DAC nodes is not configurable.
 # If we add more nodes, we'll need to make sure the urls and keys are sorted.
@@ -171,7 +131,6 @@ cast send \
     "$(jq -r '.rollupAddress' combined.json)" \
     'setDataAvailabilityProtocol(address)' \
     "$(jq -r '.polygonDataCommitteeAddress' combined.json)"
-{{end}}
 
 # Grant the aggregator role to the agglayer so that it can also verify batches.
 # cast keccak "TRUSTED_AGGREGATOR_ROLE"
