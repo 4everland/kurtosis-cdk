@@ -17,6 +17,16 @@ def create_bridge_service_config(args, config_artifact, claimtx_keystore_artifac
             "/app/zkevm-bridge",
         ],
         cmd=["run", "--cfg", "/etc/zkevm/bridge-config.toml"],
+        public_ports={
+            "rpc": PortSpec(
+                number=18082,
+                application_protocol="http",
+            ),
+            "grpc": PortSpec(
+                number=18083,
+                application_protocol="grpc",
+            ),
+        },
     )
     return {bridge_service_name: bridge_service_config}
 
@@ -39,6 +49,12 @@ def start_bridge_ui(plan, args, config_artifact):
                 "set -a; source /etc/zkevm/.env; set +a; sh /app/scripts/deploy.sh run"
             ],
             # user=User(uid=0, gid=0),  # Run the container as root user.
+            public_ports={
+                "web-ui": PortSpec(
+                    number=18081,
+                    application_protocol="http",
+                ),
+            },
         ),
     )
 
@@ -56,6 +72,12 @@ def start_reverse_proxy(plan, args, config_artifact):
             },
             files={
                 "/usr/local/etc/haproxy/": Directory(artifact_names=[config_artifact]),
+            },
+            public_ports={
+                "web-ui": PortSpec(
+                    number=18080,
+                    application_protocol="http",
+                ),
             },
         ),
     )

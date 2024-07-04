@@ -14,5 +14,8 @@ def create_dac_service_config(args, config_artifact, dac_keystore_artifact):
             "/app/cdk-data-availability",
         ],
         cmd=["run", "--cfg", "/etc/zkevm/dac-config.toml"],
+        public_ports={
+            "dac": PortSpec(number=18085, application_protocol="http"),
+        },
     )
     return {dac_name: dac_service_config}

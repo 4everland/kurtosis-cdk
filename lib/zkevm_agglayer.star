@@ -22,5 +22,10 @@ def create_agglayer_service_config(args, config_artifact, agglayer_keystore_arti
             "/usr/local/bin/agglayer",
         ],
         cmd=["run", "--cfg", "/etc/zkevm/agglayer-config.toml"],
+        public_ports={
+            "agglayer": PortSpec(
+                number=18084, application_protocol="http"
+            ),
+        },
     )
     return {agglayer_name: agglayer_service_config}

@@ -12,7 +12,7 @@ NODE_COMPONENTS = struct(
 
 
 def _create_node_component_service_config(
-    image, ports, config_files, components, http_api={}
+    image, ports, config_files, components, public_ports={}, http_api={}
 ):
     cmd = [
         "run",
@@ -31,6 +31,7 @@ def _create_node_component_service_config(
         },
         entrypoint=["/app/zkevm-node"],
         cmd=cmd,
+        public_ports=public_ports,
     )
 
 
@@ -68,6 +69,10 @@ def create_sequencer_service_config(args, config_artifact, genesis_artifact):
         },
         config_files=Directory(artifact_names=[config_artifact, genesis_artifact]),
         components=NODE_COMPONENTS.sequencer + "," + NODE_COMPONENTS.rpc,
+        public_ports={
+            "rpc": PortSpec(number=18086, application_protocol="http"),
+            "data-streamer": PortSpec(number=18087, application_protocol="datastream"),
+        },
         http_api="eth,net,debug,zkevm,txpool,web3",
     )
     return {sequencer_name: sequencer_service_config}
@@ -127,6 +132,9 @@ def create_aggregator_service_config(
             ]
         ),
         components=NODE_COMPONENTS.aggregator,
+        public_ports={
+            "aggregator": PortSpec(number=18088, application_protocol="grpc"),
+        },
     )
     return {aggregator_name: aggregator_service_config}
 
@@ -147,6 +155,10 @@ def create_rpc_service_config(args, config_artifact, genesis_artifact):
         },
         config_files=Directory(artifact_names=[config_artifact, genesis_artifact]),
         components=NODE_COMPONENTS.rpc,
+        public_ports={
+            "http-rpc": PortSpec(number=18089, application_protocol="http"),
+            "ws-rpc": PortSpec(number=18090, application_protocol="ws"),
+        },
         http_api="eth,net,debug,zkevm,txpool,web3",
     )
     return {rpc_name: rpc_service_config}
